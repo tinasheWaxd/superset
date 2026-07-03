@@ -163,6 +163,9 @@ TALISMAN_CONFIG = {
             "http://localhost:3000",
         ],
         "script-src": ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+        # Need to allow MapLibre worker blobs
+        "worker-src": ["'self'", "blob:"],
+        "child-src": ["'self'", "blob:"],
     },
     "force_https": False,
 }

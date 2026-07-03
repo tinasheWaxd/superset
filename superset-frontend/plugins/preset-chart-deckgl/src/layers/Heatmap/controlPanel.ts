@@ -125,7 +125,19 @@ const config: ControlPanelConfig = {
           },
         ],
         [deckGLFixedColor],
-        [deckGLLinearColorSchemeSelect],
+        [
+          {
+            name: 'linear_color_scheme',
+            config: {
+              ...deckGLLinearColorSchemeSelect.config,
+              // Default to the purpose-built sequential heatmap gradient rather
+              // than inheriting the global sequential default, which can resolve
+              // to a diverging scheme (poor fit for a density map) depending on
+              // module-load order.
+              default: 'deck_gl_heatmap_gradient',
+            },
+          },
+        ],
         [autozoom],
         [
           {

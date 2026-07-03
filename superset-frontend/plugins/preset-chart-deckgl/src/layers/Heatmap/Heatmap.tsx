@@ -125,7 +125,7 @@ export const getLayer: GetLayerType<HeatmapLayer> = ({
     ?.createLinearScale([0, 6]);
 
   const colorSchemeType = fd.color_scheme_type;
-  const colorRange = getColorRange({
+  let colorRange = getColorRange({
     defaultBreakpointsColor: fd.default_breakpoint_color,
     colorBreakpoints: fd.color_breakpoints,
     fixedColor: fd.color_picker,
@@ -133,19 +133,34 @@ export const getLayer: GetLayerType<HeatmapLayer> = ({
     colorScale,
   });
 
+  // deck.gl maps colorRange[0] to the lowest density and the final entry to the
+  // highest. Superset's sequential palettes aren't authored consistently (some
+  // run light->dark, others dark->light), so normalize on luminance: the
+  // densest areas should always render with the darker/most-saturated end of
+  // the palette, regardless of how the scheme is ordered.
+  if (colorRange && colorRange.length > 1) {
+    const luminance = (c: number[]) =>
+      0.299 * (c[0] ?? 0) + 0.587 * (c[1] ?? 0) + 0.114 * (c[2] ?? 0);
+    const first = colorRange[0];
+    const last = colorRange[colorRange.length - 1];
+    if (first && last && luminance(first) < luminance(last)) {
+      colorRange = [...colorRange].reverse();
+    }
+  }
+
   const tooltipContent = setTooltipContent(fd);
 
   return new HeatmapLayer({
     id: `heatmap-layer-${fd.slice_id}` as const,
     data,
-    intensity,
-    radiusPixels,
+    intensity: Number(intensity),
+    radiusPixels: Number(radiusPixels),
     colorRange,
     aggregation: aggregation.toUpperCase(),
     getPosition: (d: { position: Position; weight: number }) => d.position,
     getWeight: (d: { position: number[]; weight: number }) =>
       d.weight ? d.weight : 1,
-    opacity: 0.8,
+    opacity: fd.opacity !== undefined ? fd.opacity / 100 : 0.8,
     threshold: 0.15,
     ...commonLayerProps({
       formData: fd,
@@ -190,8 +205,8 @@ export const getHighlightLayer: GetLayerType<HeatmapLayer> = ({
   return new HeatmapLayer({
     id: `heatmap-highlight-layer-${fd.slice_id}` as const,
     data: dataInside,
-    intensity,
-    radiusPixels,
+    intensity: Number(intensity),
+    radiusPixels: Number(radiusPixels),
     colorRange: [
       [
         HIGHLIGHT_COLOR_ARRAY[0],
